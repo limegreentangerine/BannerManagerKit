@@ -40,7 +40,7 @@ class Controller extends BlockController
 
     protected function getBanner($bmBannersId)
     {
-        $banner = Banner::getByID($bmBannersId);
+        $banner = Banner::getByID((string) $bmBannersId);
 
         if (!$banner) {
             return false;
@@ -169,7 +169,7 @@ class Controller extends BlockController
     public function getBlockTypeCacheOutputLifetime()
     {
         $lifetime = 600;
-        $banner = Banner::getByID($this->bmBannersId);
+        $banner = Banner::getByID((string) $this->bmBannersId);
         $now = time();
 
         while ($banner) {
@@ -179,7 +179,7 @@ class Controller extends BlockController
                 }
             }
             $banner = $banner->getFallbackBanner();
-            if ($banner && $banner->getID() == $this->bmBannersId) {
+            if ($banner && $banner->getID() === (string) $this->bmBannersId) {
                 break;
             }
         }
@@ -190,7 +190,7 @@ class Controller extends BlockController
     public function validate($args)
     {
         $e = $this->app->make('error');
-        if (empty($args['bmBannersId']) || !Banner::getByID((int) $args['bmBannersId'])) {
+        if (empty($args['bmBannersId']) || !Banner::getByID((string) $args['bmBannersId'])) {
             $e->add(t('Please choose a banner.'));
         }
 
@@ -199,7 +199,7 @@ class Controller extends BlockController
 
     public function save($args)
     {
-        $args['bmBannersId'] = (int) ($args['bmBannersId'] ?? 0);
+        $args['bmBannersId'] = (string) ($args['bmBannersId'] ?? '');
         parent::save($args);
     }
 

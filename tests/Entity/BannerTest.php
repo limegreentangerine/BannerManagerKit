@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BannerManagerKit\Tests\Entity;
 
 use PHPUnit\Framework\TestCase;
+use BannerManagerKit\Entity\Slide;
 use BannerManagerKit\Entity\Banner;
 use BannerManagerKit\Entity\SlidePosition;
 
@@ -123,5 +124,38 @@ final class BannerTest extends TestCase
         $banner->removeSlidePosition($position);
 
         $this->assertSame($banner, $position->getBanner());
+    }
+
+    public function testCreateDuplicateCopiesSettingsAndSharesSlides(): void
+    {
+        $fallback = new Banner();
+        $source = (new Banner())
+            ->setName('Home')
+            ->setHandle('home')
+            ->setScheduleStart(new \DateTime('2026-01-10'))
+            ->setScheduleEnd(new \DateTime('2026-01-20'))
+            ->setFallbackBanner($fallback)
+            ->setShowDots(false)
+            ->setSlideAnimation('fade');
+        $slide = new Slide();
+        $source->addSlidePosition((new SlidePosition())->setSlide($slide)->setPosition(3));
+
+        $copy = $source->createDuplicate('Copy of Home', 'copy-of-home');
+
+        $this->assertNotSame($source, $copy);
+        $this->assertSame('Copy of Home', $copy->getName());
+        $this->assertSame('copy-of-home', $copy->getHandle());
+        $this->assertEquals($source->getScheduleStart(), $copy->getScheduleStart());
+        $this->assertNotSame($source->getScheduleStart(), $copy->getScheduleStart());
+        $this->assertSame($fallback, $copy->getFallbackBanner());
+        $this->assertFalse($copy->getShowDots());
+        $this->assertSame('fade', $copy->getSlideAnimation());
+
+        $positions = $copy->getSlidePositions();
+        $this->assertCount(1, $positions);
+        $this->assertSame($slide, $positions[0]->getSlide());
+        $this->assertSame($copy, $positions[0]->getBanner());
+        $this->assertSame(3, $positions[0]->getPosition());
+        $this->assertSame(1, $source->getSlidePositionsCount());
     }
 }

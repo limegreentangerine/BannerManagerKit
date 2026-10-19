@@ -174,7 +174,7 @@ class SlideTypes extends DashboardPageController
                     $this->error->add(t('Handle already in use.'));
                 }
             } else {
-                $existing = SlideTypeEntity::getByID((int) $post['id']);
+                $existing = SlideTypeEntity::getByID((string) $post['id']);
                 $post['handle'] = $existing ? $existing->getHandle() : '';
             }
 
@@ -186,7 +186,7 @@ class SlideTypes extends DashboardPageController
 
             if (!$this->error->has()) {
                 if (isset($post['id'])) {
-                    $entity = SlideTypeEntity::getByID($post['id']);
+                    $entity = SlideTypeEntity::getByID((string) $post['id']);
                 }
 
                 if (!isset($entity)) {
@@ -223,7 +223,7 @@ class SlideTypes extends DashboardPageController
         } else {
             $entity = SlideTypeEntity::getByID($id);
 
-            if ($entity && $entity->getID() > 0) {
+            if ($entity) {
                 // Set deleted message
                 $this->flash('success', t('Slide Type Deleted.'));
 
@@ -245,7 +245,7 @@ class SlideTypes extends DashboardPageController
 
     public function add_fieldset($id = null, $slideTypeId = null)
     {
-        $slideTypeId = (int) $slideTypeId;
+        $slideTypeId = (string) $slideTypeId;
         $form = $this->formRepository->findOneById((int) $id);
         if (!$this->isSlideTypeForm($form)) {
             $this->error->add(t('Invalid form object.'));
@@ -275,7 +275,7 @@ class SlideTypes extends DashboardPageController
 
     public function update_fieldset($slideTypeId)
     {
-        $slideTypeId = (int) $slideTypeId;
+        $slideTypeId = (string) $slideTypeId;
         $set = $this->fieldSetRepository->findOneById((int) $this->request->request->get('field_set_id'));
         if (!is_object($set) || !$this->isSlideTypeForm($set->getForm())) {
             $this->error->add(t('Invalid field set object.'));
@@ -296,7 +296,7 @@ class SlideTypes extends DashboardPageController
 
     public function delete_fieldset($slideTypeId)
     {
-        $slideTypeId = (int) $slideTypeId;
+        $slideTypeId = (string) $slideTypeId;
         $set = $this->fieldSetRepository->findOneById((int) $this->request->request->get('field_set_id'));
         if (!is_object($set) || !$this->isSlideTypeForm($set->getForm())) {
             $this->error->add(t('Invalid field set object.'));
@@ -336,7 +336,7 @@ class SlideTypes extends DashboardPageController
 
     public function delete_set_control($id = null)
     {
-        $slideTypeId = (int) $this->request->request->get('slideTypeId');
+        $slideTypeId = (string) $this->request->request->get('slideTypeId');
         $control = $this->controlRepository->findOneById((int) $this->request->request->get('field_set_control_id'));
         if (!is_object($control) || !$this->isSlideTypeForm($control->getFieldSet()->getForm())) {
             $this->error->add(t('Invalid field set control object.'));

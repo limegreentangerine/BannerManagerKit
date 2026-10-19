@@ -43,7 +43,7 @@ class SlidePosition extends UpdatedGuidEntity
 
         $entity = $repository->findOneBy(['slide' => $id]);
 
-        if ($entity && $entity->getID() > 0) {
+        if ($entity) {
             return $entity;
         }
 
@@ -57,7 +57,7 @@ class SlidePosition extends UpdatedGuidEntity
 
         $entity = $repository->findOneBy(['slide' => $slideId, 'banner' => $bannerId]);
 
-        if ($entity && $entity->getID() > 0) {
+        if ($entity) {
             return $entity;
         }
 

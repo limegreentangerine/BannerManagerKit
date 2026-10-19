@@ -8,10 +8,7 @@
             <unsigned/>
             <key/>
         </field>
-        <field name="bmBannersId" type="integer">
-            <unsigned />
-            <default value="0" />
-        </field>
+        <field name="bmBannersId" type="guid" />
         <index name="bmBannersId">
             <col>bmBannersId</col>
         </index>

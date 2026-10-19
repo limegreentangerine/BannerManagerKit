@@ -32,7 +32,7 @@ class Banners extends DashboardPageController
         $banners = $bl->getResults();
 
         foreach ($banners as $banner) {
-            if ($excludeId && $banner->getID() == $excludeId) {
+            if ($excludeId && $banner->getID() === (string) $excludeId) {
                 continue;
             }
             $options[$banner->getID()] = $banner->getName();
@@ -89,7 +89,7 @@ class Banners extends DashboardPageController
             // Several banners often share a page: resolve (and permission-check) each page once.
             $pages = [];
             foreach ($rows as $row) {
-                $bannerId = (int) $row['bmBannersId'];
+                $bannerId = (string) $row['bmBannersId'];
                 if (!isset($bannersById[$bannerId])) {
                     continue;
                 }
@@ -158,7 +158,7 @@ class Banners extends DashboardPageController
             $this->error->add(t('The schedule end date must be after the start date.'));
         }
 
-        if (!empty($args['fallbackBanner']) && !empty($args['id']) && $args['fallbackBanner'] == $args['id']) {
+        if (!empty($args['fallbackBanner']) && !empty($args['id']) && (string) $args['fallbackBanner'] === (string) $args['id']) {
             $this->error->add(t('A banner cannot be its own fallback.'));
         }
     }
@@ -218,7 +218,7 @@ class Banners extends DashboardPageController
                     $this->error->add(t('Handle already in use.'));
                 }
             } else {
-                $existing = BannerEntity::getByID((int) $post['id']);
+                $existing = BannerEntity::getByID((string) $post['id']);
                 $post['handle'] = $existing ? $existing->getHandle() : '';
             }
 
@@ -230,7 +230,7 @@ class Banners extends DashboardPageController
 
             if (!$this->error->has()) {
                 if (isset($post['id'])) {
-                    $entity = BannerEntity::getByID($post['id']);
+                    $entity = BannerEntity::getByID((string) $post['id']);
                 }
 
                 if (!isset($entity)) {
@@ -244,7 +244,7 @@ class Banners extends DashboardPageController
                 $entity->setScheduleStart($formDateTime->translate('scheduleStart', $post, true));
                 $entity->setScheduleEnd($formDateTime->translate('scheduleEnd', $post, true));
 
-                $fallbackBanner = !empty($post['fallbackBanner']) ? BannerEntity::getByID($post['fallbackBanner']) : null;
+                $fallbackBanner = !empty($post['fallbackBanner']) ? BannerEntity::getByID((string) $post['fallbackBanner']) : null;
                 $entity->setFallbackBanner($fallbackBanner ?: null);
 
                 $entity->setShowDots(isset($post['showDots']));
@@ -276,7 +276,7 @@ class Banners extends DashboardPageController
         } else {
             $entity = BannerEntity::getByID($id);
 
-            if ($entity && $entity->getID() > 0) {
+            if ($entity) {
                 // Set deleted message
                 $this->flash('success', t('Banner Deleted.'));
 
@@ -294,17 +294,52 @@ class Banners extends DashboardPageController
         return $rf->json($this->error->jsonSerialize());
     }
 
+    public function duplicate($id = false)
+    {
+        $id = (string) $id;
+
+        if ($id === '' || !$this->request->isPost() || !$this->token->validate('duplicate-banner-id-' . $id)) {
+            $this->flash('error', $this->token->getErrorMessage());
+
+            return $this->buildRedirect('/dashboard/banner_manager/banners/')->send();
+        }
+
+        $source = BannerEntity::getByID($id);
+        if (!$source) {
+            $this->flash('error', t('Unable to find the specified Banner Details.'));
+
+            return $this->buildRedirect('/dashboard/banner_manager/banners/')->send();
+        }
+
+        $th = $this->app->make('helper/text');
+        $name = t('Copy of %s', $source->getName());
+        $baseHandle = $th->urlify($name);
+        $handle = $baseHandle;
+        for ($i = 2; BannerEntity::getByHandle($handle); ++$i) {
+            $handle = $baseHandle . '-' . $i;
+        }
+
+        $copy = $source->createDuplicate($name, $handle);
+        $this->entityManager->persist($copy);
+        $this->entityManager->flush();
+        $copy->clearCache();
+
+        $this->flash('success', t('Banner Duplicated.'));
+
+        return $this->buildRedirect('/dashboard/banner_manager/banners/details/' . $copy->getID())->send();
+    }
+
     public function deleteSlide($id = false, $bannerId = false)
     {
-        $id = (int) $id;
-        $bannerId = (int) $bannerId;
+        $id = (string) $id;
+        $bannerId = (string) $bannerId;
 
-        if (!$id || !$bannerId || !$this->request->isPost() || !$this->token->validate('delete-banner-slide-' . $id)) {
+        if ($id === '' || $bannerId === '' || !$this->request->isPost() || !$this->token->validate('delete-banner-slide-' . $id)) {
             $this->flash('error', $this->token->getErrorMessage());
         } else {
             $entity = SlideEntity::getByID($id);
 
-            if ($entity && $entity->getID() > 0 && in_array($bannerId, array_map('intval', $entity->getBannerIds()), true)) {
+            if ($entity && in_array($bannerId, $entity->getBannerIds(), true)) {
                 // Set deleted message
                 $this->flash('success', t('Slide Deleted.'));
 
@@ -327,7 +362,7 @@ class Banners extends DashboardPageController
     public function updateSlideOrder($id = false)
     {
         $rf = $this->app->make(ResponseFactoryInterface::class);
-        $id = (int) $id;
+        $id = (string) $id;
 
         if (!$this->request->isPost() || !$this->token->validate('update-slide-order-' . $id)) {
             return $rf->json(['error' => $this->token->getErrorMessage()], 400);
@@ -341,8 +376,8 @@ class Banners extends DashboardPageController
 
         $displayOrder = 0;
         foreach ($positions as $sp) {
-            $slidePosition = SlidePositionEntity::getByID((int) $sp);
-            if (is_object($slidePosition) && (int) $slidePosition->getBanner()->getID() === $id) {
+            $slidePosition = SlidePositionEntity::getByID((string) $sp);
+            if (is_object($slidePosition) && $slidePosition->getBanner()->getID() === $id) {
                 $slidePosition->setPosition($displayOrder);
                 $this->entityManager->persist($slidePosition);
                 ++$displayOrder;

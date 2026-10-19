@@ -2,6 +2,10 @@
 
 <?php if ($v['id']) { ?>
     <div class="ccm-dashboard-header-buttons">
+        <form method="POST" action="<?php echo h($view->action('duplicate', $v['id'])); ?>" class="d-inline">
+            <?php echo $token->output('duplicate-banner-id-' . $v['id']); ?>
+            <button type="submit" class="btn btn-secondary"><?php echo t('Duplicate'); ?></button>
+        </form>
         <button data-launch-dialog="delete-dialog" class="btn btn-danger"><?php echo t('Delete'); ?></button>
     </div>
 

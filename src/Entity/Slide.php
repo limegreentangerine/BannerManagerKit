@@ -70,7 +70,7 @@ class Slide extends UpdatedGuidEntity
 
         $entity = $repository->findOneBy(['handle' => $handle]);
 
-        if ($entity && $entity->getID() > 0) {
+        if ($entity) {
             return $entity;
         }
 

@@ -99,7 +99,7 @@ class Slides extends DashboardSitePageController
 
     protected function saveExpressDetails()
     {
-        $slideType = SlideType::getByID($this->request->request->get('slideType'));
+        $slideType = SlideType::getByID((string) $this->request->request->get('slideType'));
         $express = $slideType->getExpressObject();
 
         $r = $this->entityManager->getRepository('\Concrete\Core\Entity\Express\Form');
@@ -155,7 +155,7 @@ class Slides extends DashboardSitePageController
 
     protected function validateExpress()
     {
-        $slideType = SlideType::getByID($this->request->request->get('slideType'));
+        $slideType = SlideType::getByID((string) $this->request->request->get('slideType'));
         $express = $slideType->getExpressObject();
 
         $r = $this->entityManager->getRepository('\Concrete\Core\Entity\Express\Form');
@@ -283,17 +283,17 @@ class Slides extends DashboardSitePageController
                     $this->error->add(t('Handle already in use.'));
                 }
             } else {
-                $existing = SlideEntity::getByID((int) $post['id']);
+                $existing = SlideEntity::getByID((string) $post['id']);
                 $post['handle'] = $existing ? $existing->getHandle() : '';
             }
 
-            $returnBannerId = (int) $this->request->query->get('bannerId');
-            if ($returnBannerId > 0) {
+            $returnBannerId = (string) $this->request->query->get('bannerId');
+            if ($returnBannerId !== '') {
                 $post['banners'][] = $returnBannerId;
             }
 
-            if ((int) ($post['slideType'] ?? 0) > 0) {
-                $type = SlideType::getByID((int) $post['slideType']);
+            if ((string) ($post['slideType'] ?? '') !== '') {
+                $type = SlideType::getByID((string) $post['slideType']);
             } else {
                 throw new UserMessageException(t('Slide Type (ID: %s) not found', (string) ($post['slideType'] ?? '')), 404);
             }
@@ -305,7 +305,7 @@ class Slides extends DashboardSitePageController
                 $newSlide = false;
 
                 if (isset($post['id'])) {
-                    $entity = SlideEntity::getByID((int) $post['id']);
+                    $entity = SlideEntity::getByID((string) $post['id']);
                     if (!$entity) {
                         throw new UserMessageException(t('Unable to find the specified Slide.'), 404);
                     }
@@ -344,17 +344,12 @@ class Slides extends DashboardSitePageController
                                 $slidePosition = new SlidePosition();
                             }
 
+                            // IDs are GUIDs, so a new slide goes to the end of the banner by count.
+                            $position = $newSlide ? $banner->getSlidePositionsCount() : $slidePosition->getPosition();
+
                             $slidePosition->setBanner($banner);
                             $slidePosition->setSlide($entity);
-                            $slidePosition->setPosition(0);
-                            $this->entityManager->persist($slidePosition);
-                            $this->entityManager->flush();
-
-                            if ($newSlide) {
-                                $slidePosition->setPosition($slidePosition->getID());
-                            } else {
-                                $slidePosition->setPosition($slidePosition->getPosition());
-                            }
+                            $slidePosition->setPosition((int) $position);
                             $this->entityManager->persist($slidePosition);
                             $banner->clearCache();
                         }
@@ -382,7 +377,7 @@ class Slides extends DashboardSitePageController
 
                 $this->flash('success', t('Slide Saved.'));
 
-                if ($returnBannerId > 0) {
+                if ($returnBannerId !== '') {
                     return $this->buildRedirect('/dashboard/banner_manager/banners/details/' . $returnBannerId)->send();
                 }
                 return $this->buildRedirect('/dashboard/banner_manager/slides/')->send();
@@ -403,7 +398,7 @@ class Slides extends DashboardSitePageController
         } else {
             $entity = SlideEntity::getByID($id);
 
-            if ($entity && $entity->getID() > 0) {
+            if ($entity) {
                 $expressEntry = $entity->getExpressEntry();
                 // Set deleted message
                 $this->flash('success', t('Slide Deleted.'));
@@ -432,9 +427,66 @@ class Slides extends DashboardSitePageController
         return $rf->json($this->error->jsonSerialize());
     }
 
+    /**
+     * Copies a slide and its Express entry. The copy isn't placed on any
+     * banner - the editor chooses that on the copy's own page.
+     */
+    public function duplicate($id = false)
+    {
+        $id = (string) $id;
+
+        if ($id === '' || !$this->request->isPost() || !$this->token->validate('duplicate-slide-id-' . $id)) {
+            $this->flash('error', $this->token->getErrorMessage());
+
+            return $this->buildRedirect('/dashboard/banner_manager/slides/')->send();
+        }
+
+        $source = SlideEntity::getByID($id);
+        $slideType = $source ? $source->getSlideType() : null;
+        if (!$source || !$slideType) {
+            $this->flash('error', t('Unable to find the specified Slide Details.'));
+
+            return $this->buildRedirect('/dashboard/banner_manager/slides/')->send();
+        }
+
+        $th = $this->app->make('helper/text');
+        $name = t('Copy of %s', $source->getName());
+        $baseHandle = $th->urlify($name);
+        $handle = $baseHandle;
+        for ($i = 2; SlideEntity::getByHandle($handle); ++$i) {
+            $handle = $baseHandle . '-' . $i;
+        }
+
+        $copy = new SlideEntity();
+        $copy->setName($name)->setHandle($handle)->setSlideType($slideType);
+
+        $sourceEntry = $source->getExpressEntry();
+        if ($sourceEntry) {
+            $express = $slideType->getExpressObject();
+            $manager = $this->app->make('express')->getEntityController($express)->getEntryManager($this->request);
+            $copyEntry = $manager->addEntry($express, $this->getSite());
+
+            // Cloning resets the value's id, so each entry owns its own values.
+            foreach ($sourceEntry->getAttributes() as $value) {
+                $valueObject = $value->getValueObject();
+                if ($valueObject) {
+                    $copyEntry->setAttribute($value->getAttributeKey(), clone $valueObject);
+                }
+            }
+            $copy->setExpressEntry($copyEntry);
+        }
+
+        $this->entityManager->persist($copy);
+        $this->entityManager->flush();
+
+        $this->flash('success', t('Slide Duplicated.'));
+
+        return $this->buildRedirect('/dashboard/banner_manager/slides/details/' . $copy->getID())->send();
+    }
+
     public function get_type_controls()
     {
-        $slideTypeId = (int) $this->request->query->get('slideTypeId');
+        $slideTypeId = (string) $this->request->query->get('slideTypeId');
         $expressEntryId = (int) $this->request->query->get('expressEntry') ?: false;
 
         $slideType = SlideType::getByID($slideTypeId);

@@ -2,11 +2,15 @@
 $editor = Core::make('editor');
 $editor->setAllowFileManager(false);
 $editorJavascript = $editor->outputStandardEditorInitJSFunction();
-$returnBannerId = (int) ($_GET['bannerId'] ?? 0);
+$returnBannerId = (string) ($_GET['bannerId'] ?? '');
 ?>
 
 <?php if ($v['id']) { ?>
     <div class="ccm-dashboard-header-buttons">
+        <form method="POST" action="<?php echo h($view->action('duplicate', $v['id'])); ?>" class="d-inline">
+            <?php echo $token->output('duplicate-slide-id-' . $v['id']); ?>
+            <button type="submit" class="btn btn-secondary"><?php echo t('Duplicate'); ?></button>
+        </form>
         <button data-launch-dialog="delete-dialog" class="btn btn-danger"><?php echo t('Delete'); ?></button>
     </div>
 
@@ -44,7 +48,7 @@ $returnBannerId = (int) ($_GET['bannerId'] ?? 0);
     </script>
 <?php } ?>
 
-<form method="post" action="<?php echo h($view->action('save')); ?><?php echo $returnBannerId ? '?bannerId=' . $returnBannerId : ''; ?>">
+<form method="post" action="<?php echo h($view->action('save')); ?><?php echo $returnBannerId ? '?bannerId=' . urlencode($returnBannerId) : ''; ?>">
     <?php echo $token->output('submit'); ?>
     <?php echo ($entity) ? $form->hidden('id', $entity->getID()) : ''; ?>
 
@@ -88,13 +92,13 @@ $returnBannerId = (int) ($_GET['bannerId'] ?? 0);
 
         <div class="form-group">
             <?php foreach ($banners as $banner) {
-                $checked = ($returnBannerId && $returnBannerId == $banner->getID()) ? 'checked' : (($entity && in_array($banner->getID(), $entity->getBannerIDs())) ? 'checked' : '');
+                $checked = ($returnBannerId && $returnBannerId === $banner->getID()) ? 'checked' : (($entity && in_array($banner->getID(), $entity->getBannerIDs())) ? 'checked' : '');
                 ?>
 
                 <div class="input-group">
                     <div class="checkbox">
                         <label for="<?php echo h($banner->getHandle()); ?>" >
-                            <input type="checkbox" id="<?php echo h($banner->getHandle()); ?>" name="banners[]" class="ccm-input-checkbox" value="<?php echo (int) $banner->getID(); ?>" <?php echo $checked; ?> />
+                            <input type="checkbox" id="<?php echo h($banner->getHandle()); ?>" name="banners[]" class="ccm-input-checkbox" value="<?php echo h($banner->getID()); ?>" <?php echo $checked; ?> />
                             <span><?php echo h($banner->getName()); ?></span>
                         </label>
                     </div>

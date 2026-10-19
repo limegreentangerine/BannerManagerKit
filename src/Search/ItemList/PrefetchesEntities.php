@@ -13,7 +13,7 @@ trait PrefetchesEntities
      */
     protected function prefetchEntities(string $entityClass, array $rows): array
     {
-        $ids = array_map('intval', array_column($rows, 'id'));
+        $ids = array_map('strval', array_column($rows, 'id'));
 
         if ($ids) {
             app(EntityManagerInterface::class)->createQueryBuilder()

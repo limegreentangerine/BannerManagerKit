@@ -98,7 +98,7 @@ class Banner extends UpdatedGuidEntity
 
         $entity = $repository->findOneBy(['handle' => $handle]);
 
-        if ($entity && $entity->getID() > 0) {
+        if ($entity) {
             return $entity;
         }
 
@@ -338,6 +338,34 @@ class Banner extends UpdatedGuidEntity
         }
 
         return true;
+    }
+
+    /**
+     * Build an unpersisted copy of this banner: same schedule, fallback and
+     * display options, and the same slides in the same order. Slides are
+     * shared with the original rather than cloned, since a slide can belong
+     * to any number of banners.
+     */
+    public function createDuplicate(string $name, string $handle): self
+    {
+        $copy = new self();
+        $copy->setName($name)->setHandle($handle);
+        $copy->setScheduleStart($this->scheduleStart ? clone $this->scheduleStart : null);
+        $copy->setScheduleEnd($this->scheduleEnd ? clone $this->scheduleEnd : null);
+        $copy->setFallbackBanner($this->fallbackBanner);
+        $copy->setShowDots($this->getShowDots());
+        $copy->setShowArrows($this->getShowArrows());
+        $copy->setShowDotsMobile($this->getShowDotsMobile());
+        $copy->setShowArrowsMobile($this->getShowArrowsMobile());
+        $copy->setSlideAnimation($this->getSlideAnimation());
+
+        foreach ($this->getSlidePositions() as $slidePosition) {
+            $position = (new SlidePosition())->setPosition((int) $slidePosition->getPosition());
+            $slidePosition->getSlide()->addSlidePosition($position);
+            $copy->addSlidePosition($position);
+        }
+
+        return $copy;
     }
 
     /**
