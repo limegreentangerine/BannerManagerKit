@@ -270,7 +270,7 @@ class Slides extends DashboardSitePageController
         if ($this->post()) {
             $post = $this->post();
 
-            if (!$this->token->validate('submit')) {
+            if (!$this->token->validate('submit', $this->request->request->get('submit_token'))) {
                 $this->error->add($this->token->getErrorMessage());
             }
 
@@ -290,6 +290,10 @@ class Slides extends DashboardSitePageController
             $returnBannerId = (string) $this->request->query->get('bannerId');
             if ($returnBannerId !== '') {
                 $post['banners'][] = $returnBannerId;
+            }
+            // The returning banner's checkbox is usually ticked already; without this a new slide gets one position per entry.
+            if (isset($post['banners']) && is_array($post['banners'])) {
+                $post['banners'] = array_values(array_unique(array_map('strval', $post['banners'])));
             }
 
             if ((string) ($post['slideType'] ?? '') !== '') {
