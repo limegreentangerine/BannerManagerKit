@@ -135,7 +135,7 @@ class SlidePosition extends UpdatedGuidEntity
     public function clearBannerCache()
     {
         if ($this->banner) {
-            $this->banner->clearCache();
+            $this->banner->queueCacheClear();
         }
     }
 }

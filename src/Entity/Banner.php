@@ -84,6 +84,13 @@ class Banner extends UpdatedGuidEntity
      */
     protected $slideAnimation;
 
+    /**
+     * Banner IDs whose caches are waiting for the current flush to commit.
+     *
+     * @var array<string, true>
+     */
+    protected static array $pendingCacheClears = [];
+
     public function __construct()
     {
         parent::__construct();
@@ -97,19 +104,13 @@ class Banner extends UpdatedGuidEntity
      * Concrete keeps block output in CollectionVersionBlocksOutputCache,
      * keyed by block, so one UPDATE covers every page the blocks sit on.
      */
-    protected function expireBlockOutputCache(): void
+    protected static function expireBlockOutputCache(string $bannerId): void
     {
-        static $expired = [];
-        if (isset($expired[$this->getID()])) {
-            return;
-        }
-        $expired[$this->getID()] = true;
-
         $db = \Core::make('database')->connection();
 
         // Banners whose fallback chain reaches this one render it too.
-        $ids = [$this->getID() => true];
-        $pending = [$this->getID()];
+        $ids = [$bannerId => true];
+        $pending = [$bannerId];
         while ($pending) {
             $rows = $db->fetchFirstColumn(
                 'SELECT id FROM bmBanners WHERE fallbackBannerId IN (' . implode(',', array_fill(0, count($pending), '?')) . ')',
@@ -131,6 +132,14 @@ class Banner extends UpdatedGuidEntity
         );
     }
 
+    protected static function clearCacheFor(string $id): void
+    {
+        $cache = \Core::make('cache/expensive');
+        $cache->delete(sprintf('bm_banner_slides_%s', $id));
+
+        static::expireBlockOutputCache($id);
+    }
+
 
     public static function getByHandle($handle)
     {
@@ -147,16 +156,39 @@ class Banner extends UpdatedGuidEntity
     }
 
     /**
+     * Lifecycle hook: these fire inside the flush, before the transaction
+     * commits, so clearing now would let a request re-cache the old data in
+     * the gap. Queue the banner instead; FlushListener drains the queue once
+     * the flush has committed.
+     *
      * @ORM\PostUpdate
      * @ORM\PostPersist
      * @ORM\PreRemove
      */
+    public function queueCacheClear()
+    {
+        static::$pendingCacheClears[$this->getID()] = true;
+    }
+
+    /**
+     * Clear the queued banners' caches. Called after a flush has committed.
+     */
+    public static function clearPendingCaches(): void
+    {
+        $ids = array_keys(static::$pendingCacheClears);
+        static::$pendingCacheClears = [];
+
+        foreach ($ids as $id) {
+            static::clearCacheFor((string) $id);
+        }
+    }
+
+    /**
+     * Clear this banner's caches now. For callers that have already flushed.
+     */
     public function clearCache()
     {
-        $cache = \Core::make('cache/expensive');
-        $cache->delete(sprintf('bm_banner_slides_%s', $this->getID()));
-
-        $this->expireBlockOutputCache();
+        static::clearCacheFor($this->getID());
     }
 
     /**

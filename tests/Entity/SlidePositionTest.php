@@ -43,10 +43,10 @@ final class SlidePositionTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
-    public function testClearBannerCacheDelegatesToBanner(): void
+    public function testClearBannerCacheQueuesTheBannerForClearing(): void
     {
         $banner = $this->createMock(Banner::class);
-        $banner->expects($this->once())->method('clearCache');
+        $banner->expects($this->once())->method('queueCacheClear');
 
         (new SlidePosition())->setBanner($banner)->clearBannerCache();
     }

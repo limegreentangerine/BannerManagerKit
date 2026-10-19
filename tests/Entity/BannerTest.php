@@ -8,6 +8,7 @@ use PHPUnit\Framework\TestCase;
 use BannerManagerKit\Entity\Slide;
 use BannerManagerKit\Entity\Banner;
 use BannerManagerKit\Entity\SlidePosition;
+use BannerManagerKit\Doctrine\FlushListener;
 
 final class BannerTest extends TestCase
 {
@@ -161,6 +162,30 @@ final class BannerTest extends TestCase
         $a->setFallbackBanner($b);
 
         $this->assertNull($a->resolveActive(new \DateTime('2026-02-01')));
+    }
+
+    public function testQueueCacheClearOnlyRecordsTheBannerWithoutTouchingTheCache(): void
+    {
+        $banner = new Banner();
+        (new \ReflectionProperty($banner, 'id'))->setValue($banner, 'banner-1');
+
+        // A cache clear would reach for Concrete's container, which isn't
+        // booted here; queueing must defer that until the flush has committed.
+        $banner->queueCacheClear();
+        $banner->queueCacheClear();
+
+        $pending = (new \ReflectionProperty(Banner::class, 'pendingCacheClears'))->getValue();
+        $this->assertSame(['banner-1' => true], $pending);
+
+        (new \ReflectionProperty(Banner::class, 'pendingCacheClears'))->setValue(null, []);
+    }
+
+    public function testClearPendingCachesWithNothingQueuedDoesNothing(): void
+    {
+        Banner::clearPendingCaches();
+        (new FlushListener())->postFlush();
+
+        $this->addToAssertionCount(1);
     }
 
     public function testAddSlidePositionLinksBothSidesWithoutDuplicates(): void

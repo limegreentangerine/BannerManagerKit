@@ -64,4 +64,7 @@ Notable changes to this project are documented here.
   schedule, instead of one level.
 - Saving a banner or changing its slides now expires the cached output of every
   `bm_banner` block showing it (or falling back to it), so guests see the change
-  straight away rather than after the cache lifetime.
+  straight away rather than after the cache lifetime. The clear is queued by
+  the entity lifecycle callbacks and runs in a Doctrine `postFlush` listener, so
+  it happens after the change has committed and a request can't re-cache the
+  old data in between.

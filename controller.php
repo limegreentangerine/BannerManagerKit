@@ -6,7 +6,9 @@ use Concrete\Core\Entity\Package;
 use ClassKit\Package\PackageController;
 use BannerManagerKit\Traits\DefaultBanner;
 use Concrete\Core\Asset\{Asset, AssetList};
+use BannerManagerKit\Doctrine\FlushListener;
 use Concrete\Core\Database\Connection\Connection;
+use Doctrine\ORM\{EntityManagerInterface, Events};
 use Concrete\Core\Page\{Page, Single as SinglePage};
 use ClassKit\Package\Traits\{AttributeTrait, BlockTrait, PageTrait};
 
@@ -136,6 +138,11 @@ class Controller extends PackageController
     {
         parent::on_start();
         $this->registerAssets();
+
+        // Banner cache clears queued during a flush run once it has committed.
+        $this->app->make(EntityManagerInterface::class)
+            ->getEventManager()
+            ->addEventListener(Events::postFlush, new FlushListener());
     }
 
     public function installOrUpgrade(Package $pkg)
