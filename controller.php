@@ -1,11 +1,20 @@
 <?php
 
-namespace Concrete\Package\ComposerPackage;
+namespace Concrete\Package\BannerManagerKit;
 
-use Concrete\Core\Package\Package;
+use Concrete\Core\Asset\Asset;
+use Concrete\Core\Entity\Package;
+use Concrete\Core\Asset\AssetList;
+use ClassKit\Package\PackageController;
+use BannerManagerKit\Traits\DefaultBanner;
+use ClassKit\Package\Traits\{AttributeTrait, BlockTrait, PageTrait};
 
-class Controller extends Package
+class Controller extends PackageController
 {
+    use AttributeTrait;
+    use BlockTrait;
+    use DefaultBanner;
+    use PageTrait;
     /**
      * The packages handle.
      * Note that this must be unique in the
@@ -13,7 +22,7 @@ class Controller extends Package
      *
      * @var string
      */
-    protected $pkgHandle = 'composer_package';
+    protected $pkgHandle = 'banner_manager_kit';
 
     /**
      * The packages version.
@@ -34,7 +43,6 @@ class Controller extends Package
      * The minimum PHP version compatible with the package.
      * Override this value according to the minimum required version for your package.
      *
-     * @var string
      * @var string
      */
     protected $phpVersionRequired = '8.4';
@@ -83,7 +91,7 @@ class Controller extends Package
      * @var array
      */
     protected $pkgAutoloaderRegistries = [
-        'src' => '\ComposerPackage',
+        'src' => '\BannerManagerKit',
     ];
 
     /**
@@ -95,13 +103,60 @@ class Controller extends Package
      */
     protected $tasks = [];
 
+    /**
+     * Dashboard scripts, registered so core versions (and can combine) them
+     * rather than controllers hand-writing script tags.
+     */
+    protected function registerAssets(): void
+    {
+        $al = AssetList::getInstance();
+        $options = ['position' => Asset::ASSET_POSITION_FOOTER, 'minify' => false, 'combine' => true];
+
+        foreach (['slides', 'slide_types'] as $script) {
+            $al->register('javascript', 'banner_manager_kit/' . $script, 'js/' . $script . '.js', $options, 'banner_manager_kit');
+            $al->registerGroup('banner_manager_kit/' . $script, [
+                ['javascript', 'jquery'],
+                ['javascript', 'banner_manager_kit/' . $script],
+            ]);
+        }
+    }
+
     public function getPackageName()
     {
-        return t('composer_name');
+        return t('Banner Manager');
     }
 
     public function getPackageDescription()
     {
-        return t('composer_description');
+        return t('Banner Manger');
     }
+
+    public function on_start()
+    {
+        parent::on_start();
+        $this->registerAssets();
+    }
+
+    public function installOrUpgrade(Package $pkg)
+    {
+        // Create Block Set
+        $this->addBlockTypeSet('bm', 'Banner Manager', $pkg);
+
+        // Add blocks
+        $this->autoInstallBlocks($pkg);
+
+        // Add Dashboard Pages
+        $this->addSinglePage('/dashboard/banner_manager', $pkg, t('Banner Manager'), t('Banner Manager Dashboard'));
+        $this->addSinglePage('/dashboard/banner_manager/banners', $pkg, t('Banners'), t('Banner Manager Banners'));
+        $this->addSinglePage('/dashboard/banner_manager/slides', $pkg, t('Slides'), t('Banner Manager Slides'));
+        $this->addSinglePage('/dashboard/banner_manager/slide_types', $pkg, t('Slide Types'), t('Banner Manager Slide Types'));
+        $this->addSinglePage('/dashboard/banner_manager/slide_types/attributes', $pkg, t('Attributes'), t('Banner Manager Slide Type Attributes'));
+
+        // Seed the default "Standard" slide type
+        $this->installStandardSlideType();
+    }
+
+    public function registerRoutes(): void {}
+
+    public function registerEvents(): void {}
 }

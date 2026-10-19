@@ -1,17 +1,17 @@
 {
-	"name": "limegreentangerine/composer_package",
+	"name": "limegreentangerine/banner_manager_kit",
 	"description": "composer_description",
 	"type": "concrete5-package",
 	"license": "proprietary",
 	"minimum-stability": "stable",
 	"autoload": {
 		"psr-4": {
-			"ComposerPackage\\": "src/"
+			"BannerManagerKit\\": "src/"
 		}
 	},
 	"autoload-dev": {
 		"psr-4": {
-			"ComposerPackage\\Tests\\": "tests/"
+			"BannerManagerKit\\Tests\\": "tests/"
 		}
 	},
 	"authors": [],
@@ -47,7 +47,7 @@
 			"@format:js:check"
 		],
 		"post-install-cmd": [
-			"npm install"
+			"npm ci"
 		]
 	},
 	"repositories": [
