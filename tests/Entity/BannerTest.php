@@ -11,6 +11,10 @@ use BannerManagerKit\Entity\SlidePosition;
 
 final class BannerTest extends TestCase
 {
+    private function expiredBanner(): Banner
+    {
+        return (new Banner())->setScheduleEnd(new \DateTime('2026-01-01'));
+    }
     public function testSettersAreFluentAndStoreValues(): void
     {
         $banner = (new Banner())->setHandle('home')->setName('Home');
@@ -92,16 +96,20 @@ final class BannerTest extends TestCase
         $this->assertFalse($endOnly->isCurrentlyActive(new \DateTime('2026-01-11')));
     }
 
-    public function testResolveActiveFollowsTheFallbackChain(): void
+    public function testFallbackChainStartsWithTheBannerItself(): void
     {
-        $now = new \DateTime('2026-02-01');
-        $expired = (new Banner())->setScheduleEnd(new \DateTime('2026-01-01'));
-        $live = new Banner();
-        $dead = (new Banner())->setScheduleEnd(new \DateTime('2026-01-01'))->setFallbackBanner($expired);
+        $banner = new Banner();
 
-        $this->assertSame($live, $expired->setFallbackBanner($live)->resolveActive($now));
-        $this->assertSame($live, $dead->resolveActive($now));
-        $this->assertNull((new Banner())->setScheduleEnd(new \DateTime('2026-01-01'))->resolveActive($now));
+        $this->assertSame([$banner], $banner->getFallbackChain());
+    }
+
+    public function testFallbackChainFollowsFallbacksInOrder(): void
+    {
+        $c = new Banner();
+        $b = (new Banner())->setFallbackBanner($c);
+        $a = (new Banner())->setFallbackBanner($b);
+
+        $this->assertSame([$a, $b, $c], $a->getFallbackChain());
     }
 
     public function testFallbackLoopTerminates(): void
@@ -111,6 +119,48 @@ final class BannerTest extends TestCase
         $a->setFallbackBanner($b);
 
         $this->assertSame([$a, $b], $a->getFallbackChain());
+    }
+
+    public function testResolveActiveReturnsTheBannerItselfWhenActive(): void
+    {
+        $banner = (new Banner())->setFallbackBanner(new Banner());
+
+        $this->assertSame($banner, $banner->resolveActive(new \DateTime('2026-02-01')));
+    }
+
+    public function testResolveActiveSkipsInactiveBannersToTheFirstActiveFallback(): void
+    {
+        $live = new Banner();
+        $second = $this->expiredBanner()->setFallbackBanner($live);
+        $first = $this->expiredBanner()->setFallbackBanner($second);
+
+        $this->assertSame($live, $first->resolveActive(new \DateTime('2026-02-01')));
+    }
+
+    public function testResolveActiveStopsAtTheFirstActiveBanner(): void
+    {
+        $later = new Banner();
+        $active = (new Banner())->setFallbackBanner($later);
+        $expired = $this->expiredBanner()->setFallbackBanner($active);
+
+        $this->assertSame($active, $expired->resolveActive(new \DateTime('2026-02-01')));
+    }
+
+    public function testResolveActiveIsNullWhenNothingInTheChainIsActive(): void
+    {
+        $now = new \DateTime('2026-02-01');
+
+        $this->assertNull($this->expiredBanner()->resolveActive($now));
+        $this->assertNull($this->expiredBanner()->setFallbackBanner($this->expiredBanner())->resolveActive($now));
+    }
+
+    public function testResolveActiveTerminatesOnAnInactiveFallbackLoop(): void
+    {
+        $a = $this->expiredBanner();
+        $b = $this->expiredBanner()->setFallbackBanner($a);
+        $a->setFallbackBanner($b);
+
+        $this->assertNull($a->resolveActive(new \DateTime('2026-02-01')));
     }
 
     public function testAddSlidePositionLinksBothSidesWithoutDuplicates(): void
