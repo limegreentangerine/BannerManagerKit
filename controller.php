@@ -2,12 +2,12 @@
 
 namespace Concrete\Package\BannerManagerKit;
 
-use Concrete\Core\Asset\{Asset, AssetList};
 use Concrete\Core\Entity\Package;
 use ClassKit\Package\PackageController;
 use BannerManagerKit\Traits\DefaultBanner;
-use Concrete\Core\Page\{Page, Single as SinglePage};
+use Concrete\Core\Asset\{Asset, AssetList};
 use Concrete\Core\Database\Connection\Connection;
+use Concrete\Core\Page\{Page, Single as SinglePage};
 use ClassKit\Package\Traits\{AttributeTrait, BlockTrait, PageTrait};
 
 class Controller extends PackageController

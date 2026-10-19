@@ -49,7 +49,7 @@ $returnBannerId = (string) ($_GET['bannerId'] ?? '');
 <?php } ?>
 
 <form method="post" action="<?php echo h($view->action('save')); ?><?php echo $returnBannerId ? '?bannerId=' . urlencode($returnBannerId) : ''; ?>">
-    <?php // Not ccm_token: the injected Express form posts its own ccm_token ('express_form') and would overwrite this one. ?>
+    <?php // Not ccm_token: the injected Express form posts its own ccm_token ('express_form') and would overwrite this one.?>
     <input type="hidden" name="submit_token" value="<?php echo h($token->generate('submit')); ?>" />
     <?php echo ($entity) ? $form->hidden('id', $entity->getID()) : ''; ?>
 
