@@ -70,6 +70,6 @@ class SlideTypes extends ItemList implements ApplicationAwareInterface
 
     public function getResult($queryRow)
     {
-        return SlideType::getByID($queryRow['id']);
+        return $this->findEntity(SlideType::class, $queryRow['id']);
     }
 }

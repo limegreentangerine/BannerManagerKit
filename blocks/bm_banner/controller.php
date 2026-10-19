@@ -80,7 +80,7 @@ class Controller extends BlockController
 
         $entries = [];
         $pageSelectorHandles = [];
-        foreach ($banner->getSlidePositions() as $position) {
+        foreach ($this->positionQuery()->where('sp.banner = :banner')->setParameter('banner', $banner)->getQuery()->getResult() as $position) {
             $entry = $position->getSlide()->getExpressEntry();
             if (!$entry) {
                 continue;
@@ -142,15 +142,28 @@ class Controller extends BlockController
     }
 
     /**
+     * Positions with their slide, Express entry and attribute values fetched
+     * in the same query, so reading a slide's attributes later costs no
+     * further queries. Ordered by position.
+     */
+    protected function positionQuery()
+    {
+        return $this->app->make(\Doctrine\ORM\EntityManagerInterface::class)->createQueryBuilder()
+            ->select('sp', 's', 'e', 'ev', 'gv')
+            ->from(SlidePosition::class, 'sp')
+            ->join('sp.slide', 's')
+            ->leftJoin('s.expressEntry', 'e')
+            ->leftJoin('e.attributes', 'ev')
+            ->leftJoin('ev.generic_value', 'gv')
+            ->orderBy('sp.position', 'ASC');
+    }
+
+    /**
      * Load the slides for the given position IDs in one query, in order.
      */
     protected function hydrateSlides(array $positionIds): array
     {
-        $em = $this->app->make(\Doctrine\ORM\EntityManagerInterface::class);
-        $positions = $em->createQueryBuilder()
-            ->select('sp', 's')
-            ->from(SlidePosition::class, 'sp')
-            ->join('sp.slide', 's')
+        $positions = $this->positionQuery()
             ->where('sp.id IN (:ids)')
             ->setParameter('ids', $positionIds)
             ->getQuery()

@@ -50,3 +50,6 @@ Notable changes to this project are documented here.
   tooling is retained (GitHub Actions workflows for code standards and system
   tests, PHPStan, PHP-CS-Fixer, Prettier and Cloudflare Access authentication
   for the private Composer registry).
+- Dashboard search lists now resolve rows through the identity map (`find()`)
+  so the prefetch query actually removes the per-row query, and the `bm_banner`
+  block loads slides, Express entries and attribute values in a single query.

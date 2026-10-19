@@ -70,6 +70,6 @@ class Banners extends ItemList implements ApplicationAwareInterface
 
     public function getResult($queryRow)
     {
-        return Banner::getByID($queryRow['id']);
+        return $this->findEntity(Banner::class, $queryRow['id']);
     }
 }
