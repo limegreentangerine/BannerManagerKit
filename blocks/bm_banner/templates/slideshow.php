@@ -3,7 +3,7 @@ if ($slides === false) {
     echo '<div class="ccm-edit-mode-disabled-item">' . t('No Banner Set') . '</div>';
 }
 ?>
-<?php if (isset($slides) && count($slides) > 0) { ?>
+<?php if (isset($slides) && is_array($slides) && count($slides) > 0) { ?>
     <div id="<?php echo $bID ?? null; ?>" class="bm-banner">
         <?php
             \View::element('slideshow', [

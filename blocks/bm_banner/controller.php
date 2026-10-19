@@ -6,10 +6,9 @@ defined('C5_EXECUTE') or die('Access Denied.');
 
 use Page;
 use Permissions;
-use BannerManagerKit\Entity\Banner;
 use Concrete\Core\Permission\Checker;
 use Concrete\Core\Block\BlockController;
-use BannerManagerKit\Entity\SlidePosition;
+use BannerManagerKit\Entity\{Banner, SlidePosition};
 use BannerManagerKit\Search\ItemList\Banners as BannerList;
 
 class Controller extends BlockController
@@ -38,21 +37,19 @@ class Controller extends BlockController
         return $options;
     }
 
-    protected function getBanner($bmBannersId)
+    protected function getBanner(?string $bmBannersId = null): bool|Banner
     {
+        if (is_null($bmBannersId) || $bmBannersId == '') {
+            return false;
+        }
+
         $banner = Banner::getByID((string) $bmBannersId);
 
         if (!$banner) {
             return false;
         }
 
-        if (!$banner->isCurrentlyActive()) {
-            $fallback = $banner->getFallbackBanner();
-
-            return $fallback ?: false;
-        }
-
-        return $banner;
+        return $banner->resolveActive() ?? false;
     }
 
     protected function loadHelpers()
@@ -66,7 +63,7 @@ class Controller extends BlockController
      * gets cached; the per-viewer read-permission filtering happens on every
      * request in getSlides() so one viewer's access never leaks to another.
      */
-    protected function getSlideEntries($banner): array
+    protected function getSlideEntries(Banner $banner): array
     {
         $cache = $this->app->make(\Concrete\Core\Cache\Level\ExpensiveCache::class);
         $key = sprintf('bm_banner_slides_%s', $banner->getID());
@@ -117,12 +114,8 @@ class Controller extends BlockController
     /**
      * Slide position IDs the current viewer may see, or false when none.
      */
-    protected function getSlides($banner)
+    protected function getSlides(Banner $banner)
     {
-        if (!$banner) {
-            return false;
-        }
-
         $ids = [];
         foreach ($this->getSlideEntries($banner) as $entry) {
             $allowed = true;
@@ -185,14 +178,14 @@ class Controller extends BlockController
         $banner = Banner::getByID((string) $this->bmBannersId);
         $now = time();
 
-        while ($banner) {
-            foreach ([$banner->getScheduleStart(), $banner->getScheduleEnd()] as $boundary) {
+        // Only banners up to the first active one affect what renders.
+        foreach ($banner ? $banner->getFallbackChain() : [] as $candidate) {
+            foreach ([$candidate->getScheduleStart(), $candidate->getScheduleEnd()] as $boundary) {
                 if ($boundary && $boundary->getTimestamp() > $now) {
                     $lifetime = min($lifetime, $boundary->getTimestamp() - $now);
                 }
             }
-            $banner = $banner->getFallbackBanner();
-            if ($banner && $banner->getID() === (string) $this->bmBannersId) {
+            if ($candidate->isCurrentlyActive()) {
                 break;
             }
         }
@@ -239,7 +232,7 @@ class Controller extends BlockController
     public function view()
     {
         $banner = $this->getBanner($this->bmBannersId);
-        $positions = $this->getSlides($banner);
+        $positions = $banner ? $this->getSlides($banner) : false;
         $this->set('banner', $banner);
         $this->set('positions', $positions);
         $this->set('slides', $positions === false ? false : $this->hydrateSlides($positions));

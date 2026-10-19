@@ -160,6 +160,15 @@ class Banners extends DashboardPageController
 
         if (!empty($args['fallbackBanner']) && !empty($args['id']) && (string) $args['fallbackBanner'] === (string) $args['id']) {
             $this->error->add(t('A banner cannot be its own fallback.'));
+        } elseif (!empty($args['fallbackBanner']) && !empty($args['id'])) {
+            // Reject A -> B -> A style loops, not just a direct self-reference.
+            $fallback = BannerEntity::getByID((string) $args['fallbackBanner']);
+            foreach ($fallback ? $fallback->getFallbackChain() : [] as $banner) {
+                if ($banner->getID() === (string) $args['id']) {
+                    $this->error->add(t('That fallback banner already falls back to this banner.'));
+                    break;
+                }
+            }
         }
     }
 

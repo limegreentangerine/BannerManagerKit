@@ -90,6 +90,47 @@ class Banner extends UpdatedGuidEntity
         $this->slidePositions = new ArrayCollection();
     }
 
+    /**
+     * Expire the cached output of every bm_banner block that renders this
+     * banner, directly or by falling back to it, so guests see a change
+     * straight away instead of when the block's cache lifetime runs out.
+     * Concrete keeps block output in CollectionVersionBlocksOutputCache,
+     * keyed by block, so one UPDATE covers every page the blocks sit on.
+     */
+    protected function expireBlockOutputCache(): void
+    {
+        static $expired = [];
+        if (isset($expired[$this->getID()])) {
+            return;
+        }
+        $expired[$this->getID()] = true;
+
+        $db = \Core::make('database')->connection();
+
+        // Banners whose fallback chain reaches this one render it too.
+        $ids = [$this->getID() => true];
+        $pending = [$this->getID()];
+        while ($pending) {
+            $rows = $db->fetchFirstColumn(
+                'SELECT id FROM bmBanners WHERE fallbackBannerId IN (' . implode(',', array_fill(0, count($pending), '?')) . ')',
+                $pending,
+            );
+            $pending = [];
+            foreach ($rows as $id) {
+                if (!isset($ids[$id])) {
+                    $ids[$id] = true;
+                    $pending[] = $id;
+                }
+            }
+        }
+
+        $db->executeStatement(
+            'UPDATE CollectionVersionBlocksOutputCache SET btCachedBlockOutputExpires = 0
+             WHERE bID IN (SELECT bID FROM btBmBanner WHERE bmBannersId IN (' . implode(',', array_fill(0, count($ids), '?')) . '))',
+            array_map('strval', array_keys($ids)),
+        );
+    }
+
 
     public static function getByHandle($handle)
     {
@@ -114,6 +155,43 @@ class Banner extends UpdatedGuidEntity
     {
         $cache = \Core::make('cache/expensive');
         $cache->delete(sprintf('bm_banner_slides_%s', $this->getID()));
+
+        $this->expireBlockOutputCache();
+    }
+
+    /**
+     * This banner followed by its fallback, that banner's fallback and so on.
+     * Stops at the first repeat, so a fallback loop can't run forever.
+     *
+     * @return Banner[]
+     */
+    public function getFallbackChain(): array
+    {
+        $chain = [];
+        $banner = $this;
+        // Keyed by object identity: Doctrine's identity map gives one instance
+        // per row, and unsaved banners have no ID yet.
+        while ($banner && !isset($chain[spl_object_id($banner)])) {
+            $chain[spl_object_id($banner)] = $banner;
+            $banner = $banner->getFallbackBanner();
+        }
+
+        return array_values($chain);
+    }
+
+    /**
+     * The first banner in the fallback chain that is within its schedule, or
+     * null when none of them are.
+     */
+    public function resolveActive(?\DateTime $now = null): ?self
+    {
+        foreach ($this->getFallbackChain() as $banner) {
+            if ($banner->isCurrentlyActive($now)) {
+                return $banner;
+            }
+        }
+
+        return null;
     }
 
     /**

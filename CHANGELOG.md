@@ -44,6 +44,13 @@ Notable changes to this project are documented here.
 - Added the missing controller for the slide type attributes page, so the
   "Edit Attributes" button works (list, add, edit and delete attributes).
 
+- The `bm_banner` block no longer throws a `TypeError` when no banner is set or
+  the chosen banner has been deleted, and the `slideshow` template no longer
+  calls `count()` on `false`.
+- A fallback loop (A falls back to B, B falls back to A) hung the block's cache
+  lifetime calculation. Fallback chains are now walked with a repeat check, and
+  the banner form rejects a fallback that would create a loop.
+
 ### Changed
 
 - Started from the LGT Concrete CMS Composer package template; the template's
@@ -53,3 +60,8 @@ Notable changes to this project are documented here.
 - Dashboard search lists now resolve rows through the identity map (`find()`)
   so the prefetch query actually removes the per-row query, and the `bm_banner`
   block loads slides, Express entries and attribute values in a single query.
+- A banner follows its whole fallback chain until it finds one within its
+  schedule, instead of one level.
+- Saving a banner or changing its slides now expires the cached output of every
+  `bm_banner` block showing it (or falling back to it), so guests see the change
+  straight away rather than after the cache lifetime.

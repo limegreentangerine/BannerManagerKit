@@ -92,6 +92,27 @@ final class BannerTest extends TestCase
         $this->assertFalse($endOnly->isCurrentlyActive(new \DateTime('2026-01-11')));
     }
 
+    public function testResolveActiveFollowsTheFallbackChain(): void
+    {
+        $now = new \DateTime('2026-02-01');
+        $expired = (new Banner())->setScheduleEnd(new \DateTime('2026-01-01'));
+        $live = new Banner();
+        $dead = (new Banner())->setScheduleEnd(new \DateTime('2026-01-01'))->setFallbackBanner($expired);
+
+        $this->assertSame($live, $expired->setFallbackBanner($live)->resolveActive($now));
+        $this->assertSame($live, $dead->resolveActive($now));
+        $this->assertNull((new Banner())->setScheduleEnd(new \DateTime('2026-01-01'))->resolveActive($now));
+    }
+
+    public function testFallbackLoopTerminates(): void
+    {
+        $a = new Banner();
+        $b = (new Banner())->setFallbackBanner($a);
+        $a->setFallbackBanner($b);
+
+        $this->assertSame([$a, $b], $a->getFallbackChain());
+    }
+
     public function testAddSlidePositionLinksBothSidesWithoutDuplicates(): void
     {
         $banner = new Banner();
