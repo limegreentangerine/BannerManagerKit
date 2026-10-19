@@ -2,11 +2,14 @@
 
 namespace Concrete\Package\BannerManagerKit;
 
+use Concrete\Core\Page\Page;
 use Concrete\Core\Asset\Asset;
 use Concrete\Core\Entity\Package;
 use Concrete\Core\Asset\AssetList;
 use ClassKit\Package\PackageController;
 use BannerManagerKit\Traits\DefaultBanner;
+use Concrete\Core\Page\Single as SinglePage;
+use Concrete\Core\Database\Connection\Connection;
 use ClassKit\Package\Traits\{AttributeTrait, BlockTrait, PageTrait};
 
 class Controller extends PackageController
@@ -29,7 +32,7 @@ class Controller extends PackageController
      *
      * @var string
      */
-    protected $pkgVersion = '0.0.1';
+    protected $pkgVersion = '0.0.4';
 
     /**
      * The minimum Concrete version compatible with the package.
@@ -151,6 +154,18 @@ class Controller extends PackageController
         $this->addSinglePage('/dashboard/banner_manager/slides', $pkg, t('Slides'), t('Banner Manager Slides'));
         $this->addSinglePage('/dashboard/banner_manager/slide_types', $pkg, t('Slide Types'), t('Banner Manager Slide Types'));
         $this->addSinglePage('/dashboard/banner_manager/slide_types/attributes', $pkg, t('Attributes'), t('Banner Manager Slide Type Attributes'));
+
+        // Pages created while their view file couldn't be found keep an empty
+        // cFilename (and render blank). Page::update() and SinglePage::refresh()
+        // both skip such pages, so write the filename directly.
+        $db = $this->app->make(Connection::class);
+        foreach (['', '/banners', '/slides', '/slide_types', '/slide_types/attributes'] as $suffix) {
+            $path = '/dashboard/banner_manager' . $suffix;
+            $page = Page::getByPath($path);
+            if (!$page->getCollectionFilename()) {
+                $db->update('Pages', ['cFilename' => SinglePage::getPathToNode($path, $pkg)], ['cID' => $page->getCollectionID()]);
+            }
+        }
 
         // Seed the default "Standard" slide type
         $this->installStandardSlideType();

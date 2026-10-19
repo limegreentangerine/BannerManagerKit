@@ -14,8 +14,8 @@ use Concrete\Core\Express\Form\Context\DashboardFormContext;
 use Concrete\Core\Express\Form\Processor\ProcessorInterface;
 use Concrete\Core\Page\Controller\DashboardSitePageController;
 use Concrete\Core\Controller\Traits\DashboardExpressEntryDetailsTrait;
+use Concrete\Package\BannerManagerKit\Controller\Search\Slides as SearchController;
 use BannerManagerKit\Entity\{Banner, Slide as SlideEntity, SlidePosition, SlideType};
-use Concrete\Package\BannerManagerKit\Controller\Search\Slide\Slides as SearchController;
 use BannerManagerKit\Search\ItemList\{Banners as BannerList, SlideTypes as SlideTypeList};
 
 class Slides extends DashboardSitePageController
@@ -32,7 +32,7 @@ class Slides extends DashboardSitePageController
     protected function getHeaderSearch()
     {
         if (!isset($this->headerSearch)) {
-            $this->headerSearch = $this->app->make(ElementManager::class)->get('search/slides/search', [ 'headerSearchAction' => Page::getCurrentPage()->getCollectionLink() ], 'banner_manager_kit');
+            $this->headerSearch = $this->app->make(ElementManager::class)->get('search/slides', [ 'headerSearchAction' => Page::getCurrentPage()->getCollectionLink() ], 'banner_manager_kit');
         }
 
         return $this->headerSearch;

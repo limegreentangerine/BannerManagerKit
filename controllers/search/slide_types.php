@@ -1,6 +1,6 @@
 <?php
 
-namespace Concrete\Package\BannerManagerKit\Controller\Search\SlideType;
+namespace Concrete\Package\BannerManagerKit\Controller\Search;
 
 use Concrete\Core\Search\StickyRequest;
 use Concrete\Core\Controller\AbstractController;

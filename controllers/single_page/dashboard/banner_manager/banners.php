@@ -44,7 +44,7 @@ class Banners extends DashboardPageController
     protected function getHeaderSearch()
     {
         if (!isset($this->headerSearch)) {
-            $this->headerSearch = $this->app->make(ElementManager::class)->get('search/banners/search', [ 'headerSearchAction' => Page::getCurrentPage()->getCollectionLink() ], 'banner_manager_kit');
+            $this->headerSearch = $this->app->make(ElementManager::class)->get('search/banners', [ 'headerSearchAction' => Page::getCurrentPage()->getCollectionLink() ], 'banner_manager_kit');
         }
 
         return $this->headerSearch;

@@ -31,6 +31,18 @@ Notable changes to this project are documented here.
   comparisons are strict.
 - New slide positions no longer use the GUID as an integer position.
 - `btBmBanner.bmBannersId` is stored as a GUID column.
+- Dashboard pages rendered blank: the view files lived in `single_page/`
+  instead of Concrete's `single_pages/`, so the installed pages had no
+  `cFilename`. The directory is renamed and the upgrade now writes the missing
+  filenames for existing installs (package version 0.0.4).
+- The slides and slide types search controllers had namespaces that didn't match
+  their file paths, and the banners/slides pages requested search header
+  elements that don't exist.
+- The slide type details page failed to load its `Control` element controller:
+  it lived in `controllers/elements/dashboard/slides_types/` instead of
+  `controllers/element/dashboard/slide_type/`.
+- Added the missing controller for the slide type attributes page, so the
+  "Edit Attributes" button works (list, add, edit and delete attributes).
 
 ### Changed
 

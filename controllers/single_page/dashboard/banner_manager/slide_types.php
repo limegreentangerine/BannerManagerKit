@@ -7,7 +7,7 @@ use Concrete\Core\Entity\Express\FieldSet;
 use Concrete\Core\Http\ResponseFactoryInterface;
 use BannerManagerKit\Entity\SlideType as SlideTypeEntity;
 use Concrete\Core\Page\Controller\DashboardPageController;
-use Concrete\Package\BannerManagerKit\Controller\Search\SlideType\SlideTypes as SearchController;
+use Concrete\Package\BannerManagerKit\Controller\Search\SlideTypes as SearchController;
 
 class SlideTypes extends DashboardPageController
 {
