@@ -180,6 +180,34 @@ final class BannerTest extends TestCase
         (new \ReflectionProperty(Banner::class, 'pendingCacheClears'))->setValue(null, []);
     }
 
+    public function testQueuedCacheClearSurvivesDoctrineUnsettingTheIdOnDelete(): void
+    {
+        $banner = new Banner();
+        (new \ReflectionProperty($banner, 'id'))->setValue($banner, 'banner-1');
+
+        // PreRemove fires while the id is still set.
+        $banner->queueCacheClear();
+
+        // Doctrine unsets the identifier once the row is deleted.
+        \Closure::bind(function (): void {
+            unset($this->id); // @phpstan-ignore unset.possiblyHookedProperty
+        }, $banner, Banner::class)();
+
+        // The queue holds the id string, so draining it needs no entity...
+        $pending = (new \ReflectionProperty(Banner::class, 'pendingCacheClears'))->getValue();
+        $this->assertSame(['banner-1' => true], $pending);
+
+        // ...whereas an entity-based clear after the flush is what crashed the delete.
+        $this->expectException(\Error::class);
+        $this->expectExceptionMessage('must not be accessed before initialization');
+
+        try {
+            $banner->clearCache();
+        } finally {
+            (new \ReflectionProperty(Banner::class, 'pendingCacheClears'))->setValue(null, []);
+        }
+    }
+
     public function testClearPendingCachesWithNothingQueuedDoesNothing(): void
     {
         Banner::clearPendingCaches();

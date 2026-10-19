@@ -291,8 +291,9 @@ class Banners extends DashboardPageController
 
                 // run the delete.
                 $this->entityManager->remove($entity);
+                // The id is gone once the flush removes the row; Banner::queueCacheClear()
+                // (PreRemove) already queued the cache clear for FlushListener.
                 $this->entityManager->flush();
-                $entity->clearCache();
 
                 return $rf->json(true);
             }
