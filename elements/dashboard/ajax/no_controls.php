@@ -1,0 +1,1 @@
+<div class="alert alert-danger"><?php echo t('No form controls'); ?></div>
