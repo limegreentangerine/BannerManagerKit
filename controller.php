@@ -131,7 +131,7 @@ class Controller extends PackageController
 
     public function getPackageDescription()
     {
-        return t('Banner Manger');
+        return t('Banner Manager');
     }
 
     public function on_start()
