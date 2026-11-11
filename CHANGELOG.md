@@ -68,3 +68,4 @@ Notable changes to this project are documented here.
   the entity lifecycle callbacks and runs in a Doctrine `postFlush` listener, so
   it happens after the change has committed and a request can't re-cache the
   old data in between.
+- Updated the `class_kit` dependency to 2.0.3.
