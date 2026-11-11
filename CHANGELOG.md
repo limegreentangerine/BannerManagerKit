@@ -2,6 +2,17 @@
 
 Notable changes to this project are documented here.
 
+## 1.1.0 - 2026-11-11
+
+### Changed
+
+- Updated the `class_kit` dependency to 2.0.3.
+- Added a package description to `composer.json`.
+
+### Fixed
+
+- Typo in the package description shown in Concrete ("Banner Manger").
+
 ## 1.0.0 - 2026-10-20
 
 ### Added
@@ -68,4 +79,3 @@ Notable changes to this project are documented here.
   the entity lifecycle callbacks and runs in a Doctrine `postFlush` listener, so
   it happens after the change has committed and a request can't re-cache the
   old data in between.
-- Updated the `class_kit` dependency to 2.0.3.
