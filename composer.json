@@ -14,7 +14,12 @@
 			"BannerManagerKit\\Tests\\": "tests/"
 		}
 	},
-	"authors": [],
+	"authors": [
+		{
+			"name": "Dave Hendy",
+			"email": "david@limegreentangerine.co.uk"
+		}
+	],
 	"require": {
 		"limegreentangerine/class_kit": "^1.0 || ^2.0"
 	},
