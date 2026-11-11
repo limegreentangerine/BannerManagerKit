@@ -1,6 +1,6 @@
 {
 	"name": "limegreentangerine/banner_manager_kit",
-	"description": "composer_description",
+	"description": "Concrete CMS package for managing scheduled banners and slideshows from the dashboard, with a block to display them on pages.",
 	"type": "concrete5-package",
 	"license": "proprietary",
 	"minimum-stability": "stable",
